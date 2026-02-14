@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pirate Adventure</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Scene containers */
+    .scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    .scene.active {
+      display: block;
+    }
+
+    /* Scene 1 */
+    #scene1 {
+      background: url('png/background.png') center/cover no-repeat;
+    }
+
+    #pirate-container {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 65%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    #pirate-img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+      transition: transform 0.3s ease;
+    }
+
+    #pirate-img.shake {
+      animation: shake 0.4s ease;
+    }
+
+    #pirate-img.fall-down {
+      animation: fallDown 1s ease forwards;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-15px) rotate(-3deg); }
+      40% { transform: translateX(15px) rotate(3deg); }
+      60% { transform: translateX(-10px) rotate(-2deg); }
+      80% { transform: translateX(10px) rotate(2deg); }
+    }
+
+    @keyframes fallDown {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(30px) rotate(0deg); opacity: 1; }
+    }
+
+    #attack-point {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 0, 0, 0.5) 0%, rgba(255, 0, 0, 0.15) 60%, transparent 70%);
+      border: 3px solid rgba(255, 0, 0, 0.6);
+      cursor: pointer;
+      z-index: 10;
+      animation: pulseAttack 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulseAttack {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.3); }
+      50% { transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 25px rgba(255, 0, 0, 0.5); }
+    }
+
+    #attack-point:hover {
+      background: radial-gradient(circle, rgba(255, 0, 0, 0.7) 0%, rgba(255, 0, 0, 0.25) 60%, transparent 70%);
+      border-color: rgba(255, 0, 0, 0.9);
+    }
+
+    /* Hit counter */
+    #hit-counter {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 20;
+    }
+
+    /* Scene 2 */
+    #scene2 {
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #scene2.active {
+      display: flex;
+    }
+
+    #map-container {
+      position: relative;
+      width: 70%;
+      max-height: 90vh;
+      animation: mapPopOut 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      transform: scale(0);
+    }
+
+    @keyframes mapPopOut {
+      0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    #map-img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    #star-container {
+      position: absolute;
+      bottom: 28%;
+      right: 22%;
+      width: 8%;
+      cursor: pointer;
+      animation: sparkle 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes sparkle {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.2); filter: brightness(1.4); }
+    }
+
+    #star-img {
+      width: 100%;
+      height: auto;
+    }
+
+    /* Scene 3 */
+    #scene3 {
+      background: url('png/background.png') center/cover no-repeat;
+    }
+
+    #chest-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 45%;
+      bottom: 40%;
+      animation: chestDrop 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      cursor: pointer;
+    }
+
+    @keyframes chestDrop {
+      0% { bottom: 110%; opacity: 0; }
+      70% { bottom: 37%; opacity: 1; }
+      85% { bottom: 43%; }
+      100% { bottom: 40%; opacity: 1; }
+    }
+
+    #chest-img {
+      width: 100%;
+      height: auto;
+    }
+
+    #chest-img.open-bounce {
+      animation: openBounce 0.5s ease forwards;
+    }
+
+    @keyframes openBounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Scene 1: Pirate Attack -->
+  <div id="scene1" class="scene active">
+    <div id="hit-counter">Hits: <span id="hits">0</span> / 3</div>
+    <div id="pirate-container">
+      <img id="pirate-img" src="png/pirate.png" alt="Pirate">
+      <div id="attack-point"></div>
+    </div>
+  </div>
+
+  <!-- Scene 2: Map with Star -->
+  <div id="scene2" class="scene">
+    <div id="map-container">
+      <img id="map-img" src="png/map.png" alt="Treasure Map">
+      <div id="star-container">
+        <img id="star-img" src="png/star.png" alt="Star">
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 3: Treasure Chest -->
+  <div id="scene3" class="scene">
+    <div id="chest-container">
+      <img id="chest-img" src="png/treasure chest close.png" alt="Treasure Chest">
+    </div>
+  </div>
+
+  <script>
+    const pirateImg = document.getElementById('pirate-img');
+    const attackPoint = document.getElementById('attack-point');
+    const hitsDisplay = document.getElementById('hits');
+    const scene1 = document.getElementById('scene1');
+    const scene2 = document.getElementById('scene2');
+    const scene3 = document.getElementById('scene3');
+    const starContainer = document.getElementById('star-container');
+    const chestImg = document.getElementById('chest-img');
+    const chestContainer = document.getElementById('chest-container');
+
+    let hitCount = 0;
+    let isAttacking = false;
+
+    // Scene 1: Attack the pirate
+    attackPoint.addEventListener('click', function () {
+      if (isAttacking) return;
+      isAttacking = true;
+      hitCount++;
+      hitsDisplay.textContent = hitCount;
+
+      if (hitCount < 3) {
+        // Show hurt pirate
+        pirateImg.src = 'png/pirate sick.png';
+        pirateImg.classList.add('shake');
+
+        setTimeout(function () {
+          pirateImg.classList.remove('shake');
+        }, 400);
+
+        // Revert to normal after 2 seconds
+        setTimeout(function () {
+          pirateImg.src = 'png/pirate.png';
+          isAttacking = false;
+        }, 2000);
+      } else {
+        // Third hit: pirate defeated
+        attackPoint.style.display = 'none';
+        pirateImg.src = 'png/pirate sick.png';
+        pirateImg.classList.add('shake');
+
+        setTimeout(function () {
+          pirateImg.classList.remove('shake');
+          pirateImg.src = 'png/pirate down.png';
+          pirateImg.classList.add('fall-down');
+
+          // Transition to Scene 2 after pirate falls
+          setTimeout(function () {
+            scene1.classList.remove('active');
+            scene2.classList.add('active');
+          }, 1500);
+        }, 800);
+      }
+    });
+
+    // Scene 2: Click the star
+    starContainer.addEventListener('click', function () {
+      scene2.classList.remove('active');
+      scene3.classList.add('active');
+    });
+
+    // Scene 3: Click the treasure chest to open
+    let chestOpened = false;
+    chestContainer.addEventListener('click', function () {
+      if (chestOpened) return;
+      chestOpened = true;
+      chestImg.src = 'png/treasure chest open.png';
+      chestImg.classList.add('open-bounce');
+      chestContainer.style.cursor = 'default';
+    });
+  </script>
+</body>
+</html>
