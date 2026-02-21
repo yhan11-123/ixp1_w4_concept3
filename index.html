@@ -314,40 +314,6 @@
   </div>
 
   <script>
-    // ===== Knife swing sound using Web Audio API =====
-    var audioCtx = null;
-    function playKnifeSwing() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      var duration = 0.35;
-      var osc = audioCtx.createOscillator();
-      var gain = audioCtx.createGain();
-      var noise = audioCtx.createOscillator();
-      var noiseGain = audioCtx.createGain();
-
-      // Swoosh: descending frequency
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + duration);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      // Add a noise-like layer for the whoosh
-      noise.type = 'triangle';
-      noise.frequency.setValueAtTime(1200, audioCtx.currentTime);
-      noise.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + duration);
-      noiseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-      noise.connect(noiseGain);
-      noiseGain.connect(audioCtx.destination);
-
-      osc.start(audioCtx.currentTime);
-      osc.stop(audioCtx.currentTime + duration);
-      noise.start(audioCtx.currentTime);
-      noise.stop(audioCtx.currentTime + duration);
-    }
-
     // ===== Scene 1: Drag ship to island =====
     var shipImg = document.getElementById('ship-img');
     var islandImg = document.getElementById('island-img');
@@ -503,7 +469,6 @@
         // After 2 seconds, show pirate fight image with knife swing sound
         setTimeout(function () {
           pirateImg.src = 'png/pirate fight.png';
-          playKnifeSwing();
 
           // After showing fight pose briefly, allow next attack
           setTimeout(function () {
