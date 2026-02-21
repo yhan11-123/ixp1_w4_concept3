@@ -32,8 +32,83 @@
       display: block;
     }
 
-    /* Scene 1 */
+    /* Scene 1: Ship to Island */
     #scene1 {
+      background: url('png/background.png') center/cover no-repeat;
+    }
+
+    #scene1.active {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10%;
+    }
+
+    #ship-img {
+      width: 20vw;
+      height: auto;
+      cursor: grab;
+      position: absolute;
+      left: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: filter 0.2s;
+    }
+
+    #ship-img:active {
+      cursor: grabbing;
+    }
+
+    #ship-img.sailing {
+      transition: left 1s ease-in-out, top 0.5s ease;
+    }
+
+    #island-img {
+      width: 20vw;
+      height: auto;
+      position: absolute;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #island-img.glow {
+      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+      animation: islandGlow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes islandGlow {
+      0% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4)); }
+      100% { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9)); }
+    }
+
+    #drag-hint {
+      position: absolute;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 20;
+      animation: hintPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes hintPulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* Scene 2: Pirate Attack */
+    #scene2 {
       background: url('png/background.png') center/cover no-repeat;
     }
 
@@ -115,15 +190,15 @@
       z-index: 20;
     }
 
-    /* Scene 2 */
-    #scene2 {
+    /* Scene 3: Map */
+    #scene3 {
       background: rgba(0, 0, 0, 0.85);
       display: none;
       justify-content: center;
       align-items: center;
     }
 
-    #scene2.active {
+    #scene3.active {
       display: flex;
     }
 
@@ -165,8 +240,8 @@
       height: auto;
     }
 
-    /* Scene 3 */
-    #scene3 {
+    /* Scene 4: Treasure Chest */
+    #scene4 {
       background: url('png/background.png') center/cover no-repeat;
     }
 
@@ -205,8 +280,15 @@
 </head>
 <body>
 
-  <!-- Scene 1: Pirate Attack -->
+  <!-- Scene 1: Ship to Island (drag) -->
   <div id="scene1" class="scene active">
+    <img id="ship-img" src="png/ship.png" alt="Ship" draggable="false">
+    <img id="island-img" src="png/island.png" alt="Island" draggable="false">
+    <div id="drag-hint">Drag the ship to the island!</div>
+  </div>
+
+  <!-- Scene 2: Pirate Attack -->
+  <div id="scene2" class="scene">
     <div id="hit-counter">Hits: <span id="hits">0</span> / 3</div>
     <div id="pirate-container">
       <img id="pirate-img" src="png/pirate.png" alt="Pirate">
@@ -214,8 +296,8 @@
     </div>
   </div>
 
-  <!-- Scene 2: Map with Star -->
-  <div id="scene2" class="scene">
+  <!-- Scene 3: Map with Star -->
+  <div id="scene3" class="scene">
     <div id="map-container">
       <img id="map-img" src="png/map.png" alt="Treasure Map">
       <div id="star-container">
@@ -224,52 +306,215 @@
     </div>
   </div>
 
-  <!-- Scene 3: Treasure Chest -->
-  <div id="scene3" class="scene">
+  <!-- Scene 4: Treasure Chest -->
+  <div id="scene4" class="scene">
     <div id="chest-container">
       <img id="chest-img" src="png/treasure chest close.png" alt="Treasure Chest">
     </div>
   </div>
 
   <script>
-    const pirateImg = document.getElementById('pirate-img');
-    const attackPoint = document.getElementById('attack-point');
-    const hitsDisplay = document.getElementById('hits');
-    const scene1 = document.getElementById('scene1');
-    const scene2 = document.getElementById('scene2');
-    const scene3 = document.getElementById('scene3');
-    const starContainer = document.getElementById('star-container');
-    const chestImg = document.getElementById('chest-img');
-    const chestContainer = document.getElementById('chest-container');
+    // ===== Knife swing sound using Web Audio API =====
+    var audioCtx = null;
+    function playKnifeSwing() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var duration = 0.35;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      var noise = audioCtx.createOscillator();
+      var noiseGain = audioCtx.createGain();
 
-    let hitCount = 0;
-    let isAttacking = false;
+      // Swoosh: descending frequency
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + duration);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
 
-    // Scene 1: Attack the pirate
+      // Add a noise-like layer for the whoosh
+      noise.type = 'triangle';
+      noise.frequency.setValueAtTime(1200, audioCtx.currentTime);
+      noise.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + duration);
+      noiseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      noise.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+      noise.start(audioCtx.currentTime);
+      noise.stop(audioCtx.currentTime + duration);
+    }
+
+    // ===== Scene 1: Drag ship to island =====
+    var shipImg = document.getElementById('ship-img');
+    var islandImg = document.getElementById('island-img');
+    var dragHint = document.getElementById('drag-hint');
+    var scene1 = document.getElementById('scene1');
+    var scene2 = document.getElementById('scene2');
+    var scene3 = document.getElementById('scene3');
+    var scene4 = document.getElementById('scene4');
+
+    var isDragging = false;
+    var dragOffsetX = 0;
+    var dragOffsetY = 0;
+    var shipStartLeft = 0;
+    var shipStartTop = 0;
+    var scene1Done = false;
+
+    function getShipCenter() {
+      var rect = shipImg.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    function getIslandCenter() {
+      var rect = islandImg.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    function checkOverlap() {
+      var shipRect = shipImg.getBoundingClientRect();
+      var islandRect = islandImg.getBoundingClientRect();
+      return !(shipRect.right < islandRect.left ||
+               shipRect.left > islandRect.right ||
+               shipRect.bottom < islandRect.top ||
+               shipRect.top > islandRect.bottom);
+    }
+
+    // Mouse events
+    shipImg.addEventListener('mousedown', function (e) {
+      if (scene1Done) return;
+      isDragging = true;
+      var rect = shipImg.getBoundingClientRect();
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+      shipImg.style.cursor = 'grabbing';
+      dragHint.style.display = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!isDragging) return;
+      shipImg.style.left = (e.clientX - dragOffsetX) + 'px';
+      shipImg.style.top = (e.clientY - dragOffsetY) + 'px';
+      shipImg.style.transform = 'none';
+
+      if (checkOverlap()) {
+        islandImg.classList.add('glow');
+      } else {
+        islandImg.classList.remove('glow');
+      }
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (!isDragging) return;
+      isDragging = false;
+      shipImg.style.cursor = 'grab';
+
+      if (checkOverlap()) {
+        scene1Done = true;
+        transitionToScene2();
+      }
+    });
+
+    // Touch events
+    shipImg.addEventListener('touchstart', function (e) {
+      if (scene1Done) return;
+      isDragging = true;
+      var touch = e.touches[0];
+      var rect = shipImg.getBoundingClientRect();
+      dragOffsetX = touch.clientX - rect.left;
+      dragOffsetY = touch.clientY - rect.top;
+      dragHint.style.display = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!isDragging) return;
+      var touch = e.touches[0];
+      shipImg.style.left = (touch.clientX - dragOffsetX) + 'px';
+      shipImg.style.top = (touch.clientY - dragOffsetY) + 'px';
+      shipImg.style.transform = 'none';
+
+      if (checkOverlap()) {
+        islandImg.classList.add('glow');
+      } else {
+        islandImg.classList.remove('glow');
+      }
+      e.preventDefault();
+    });
+
+    document.addEventListener('touchend', function () {
+      if (!isDragging) return;
+      isDragging = false;
+
+      if (checkOverlap()) {
+        scene1Done = true;
+        transitionToScene2();
+      }
+    });
+
+    function transitionToScene2() {
+      islandImg.classList.remove('glow');
+      shipImg.style.opacity = '0';
+      islandImg.style.opacity = '0';
+      shipImg.style.transition = 'opacity 0.5s';
+      islandImg.style.transition = 'opacity 0.5s';
+      setTimeout(function () {
+        scene1.classList.remove('active');
+        scene2.classList.add('active');
+      }, 600);
+    }
+
+    // ===== Scene 2: Pirate Attack =====
+    var pirateImg = document.getElementById('pirate-img');
+    var attackPoint = document.getElementById('attack-point');
+    var hitsDisplay = document.getElementById('hits');
+
+    var hitCount = 0;
+    var isAttacking = false;
+
+    // Sick images per attack: 1st=pirate sick, 2nd=pirate sick2, 3rd=pirate sick
+    var sickImages = [
+      'png/pirate sick.png',
+      'png/pirate sick2.png',
+      'png/pirate sick.png'
+    ];
+
     attackPoint.addEventListener('click', function () {
       if (isAttacking) return;
       isAttacking = true;
       hitCount++;
       hitsDisplay.textContent = hitCount;
 
+      var sickImg = sickImages[hitCount - 1];
+
       if (hitCount < 3) {
         // Show hurt pirate
-        pirateImg.src = 'png/pirate sick.png';
+        pirateImg.src = sickImg;
         pirateImg.classList.add('shake');
 
         setTimeout(function () {
           pirateImg.classList.remove('shake');
         }, 400);
 
-        // Revert to normal after 2 seconds
+        // After 2 seconds, show pirate fight image with knife swing sound
         setTimeout(function () {
-          pirateImg.src = 'png/pirate.png';
-          isAttacking = false;
+          pirateImg.src = 'png/pirate fight.png';
+          playKnifeSwing();
+
+          // After showing fight pose briefly, allow next attack
+          setTimeout(function () {
+            pirateImg.src = 'png/pirate.png';
+            isAttacking = false;
+          }, 800);
         }, 2000);
       } else {
         // Third hit: pirate defeated
         attackPoint.style.display = 'none';
-        pirateImg.src = 'png/pirate sick.png';
+        pirateImg.src = sickImg;
         pirateImg.classList.add('shake');
 
         setTimeout(function () {
@@ -277,23 +522,28 @@
           pirateImg.src = 'png/pirate down.png';
           pirateImg.classList.add('fall-down');
 
-          // Transition to Scene 2 after pirate falls
+          // Transition to Scene 3 after pirate falls
           setTimeout(function () {
-            scene1.classList.remove('active');
-            scene2.classList.add('active');
+            scene2.classList.remove('active');
+            scene3.classList.add('active');
           }, 1500);
         }, 800);
       }
     });
 
-    // Scene 2: Click the star
+    // ===== Scene 3: Click the star =====
+    var starContainer = document.getElementById('star-container');
+
     starContainer.addEventListener('click', function () {
-      scene2.classList.remove('active');
-      scene3.classList.add('active');
+      scene3.classList.remove('active');
+      scene4.classList.add('active');
     });
 
-    // Scene 3: Click the treasure chest to open
-    let chestOpened = false;
+    // ===== Scene 4: Treasure Chest =====
+    var chestImg = document.getElementById('chest-img');
+    var chestContainer = document.getElementById('chest-container');
+    var chestOpened = false;
+
     chestContainer.addEventListener('click', function () {
       if (chestOpened) return;
       chestOpened = true;
