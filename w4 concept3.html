@@ -1,1 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pirate Adventure</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    body { width: 100vw; height: 100vh; overflow: hidden; }
+
+    /* ── shared scene base ── */
+    .scene {
+      position: fixed;
+      inset: 0;
+      display: none;
+    }
+    .scene.active { display: block; }
+
+    /* ════════════════════════════
+       SCENE 1 – Ship & Island
+    ════════════════════════════ */
+    #scene1 {
+      background: linear-gradient(to bottom, #87ceeb 0%, #1a78a0 55%, #0d4e70 100%);
+    }
+
+    /* Ship: center at 25% from left, vertically centered, 20% screen */
+    #ship {
+      position: absolute;
+      width: 20vw;
+      height: 20vh;
+      object-fit: contain;
+      left: calc(25% - 10vw);
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: grab;
+      user-select: none;
+      z-index: 10;
+      transition: opacity 0.3s;
+    }
+
+    /* Island: center at 25% from right (75% from left), vertically centered, 20% screen */
+    #island {
+      position: absolute;
+      width: 20vw;
+      height: 20vh;
+      object-fit: contain;
+      left: calc(75% - 10vw);
+      top: 50%;
+      transform: translateY(-50%);
+      transition: opacity 0.3s;
+    }
+
+    /* ════════════════════════════
+       SCENE 2 – Pirate Battle
+    ════════════════════════════ */
+    #scene2 { overflow: hidden; }
+
+    #bg-img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    #pirate-wrap {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: 35vw;
+      height: 80vh;
+      z-index: 1;
+    }
+
+    #pirate-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: bottom;
+    }
+
+    #attack-btn {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ff6666, #bb0000);
+      border: 4px solid rgba(255, 160, 160, 0.85);
+      cursor: pointer;
+      top: 28%;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: aPulse 0.9s ease-in-out infinite;
+      z-index: 20;
+      box-shadow: 0 0 22px rgba(255, 0, 0, 0.55), inset 0 2px 5px rgba(255,255,255,0.25);
+    }
+
+    #attack-btn::before {
+      content: '';
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 210, 210, 0.5);
+    }
+
+    #attack-btn::after {
+      content: '✕';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 22px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    @keyframes aPulse {
+      0%, 100% {
+        transform: translateX(-50%) scale(1);
+        box-shadow: 0 0 22px rgba(255,0,0,0.55);
+      }
+      50% {
+        transform: translateX(-50%) scale(1.18);
+        box-shadow: 0 0 38px rgba(255,0,0,0.9);
+      }
+    }
+
+    /* ════════════════════════════
+       SCENE 3 – Map
+    ════════════════════════════ */
+    #scene3 {
+      background: radial-gradient(ellipse at center, #1a1a2e 0%, #080810 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #scene3.active { display: flex; }
+
+    #map-wrap {
+      position: relative;
+      width: 70vw;
+      height: 70vh;
+      animation: mapPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes mapPop {
+      0%   { transform: scale(0) rotate(-6deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg);  opacity: 1; }
+    }
+
+    #map-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+
+    #star-img {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      top: 42%;
+      left: 57%;
+      cursor: pointer;
+      animation: sparkle 0.75s ease-in-out infinite;
+      transform-origin: center;
+      filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 3px orange);
+    }
+
+    /* Star: scale between 100% and 150% */
+    @keyframes sparkle {
+      0%, 100% { transform: scale(1);   }
+      50%       { transform: scale(1.5); }
+    }
+
+    /* ════════════════════════════
+       SCENE 4 – Treasure Chest
+    ════════════════════════════ */
+    #scene4 {
+      background: radial-gradient(ellipse at center bottom, #3d1f00 0%, #150800 100%);
+    }
+
+    /* 45% of screen; horizontally centered; animates from top */
+    #chest-img {
+      position: absolute;
+      width: 45vmin;
+      height: 45vmin;
+      object-fit: contain;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: pointer;
+      /* starts off-screen above */
+      top: -60%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════ SCENE 1: Ship & Island ════ -->
+  <div id="scene1" class="scene active">
+    <img id="ship"   src="png/ship.png"   alt="Ship"   draggable="false" />
+    <img id="island" src="png/island.png" alt="Island" />
+  </div>
+
+  <!-- ════ SCENE 2: Pirate Battle ════ -->
+  <div id="scene2" class="scene">
+    <img id="bg-img" src="png/background.png" alt="Background" />
+    <div id="pirate-wrap">
+      <img id="pirate-img" src="png/pirate.png" alt="Pirate" />
+      <div id="attack-btn" role="button" aria-label="Attack"></div>
+    </div>
+  </div>
+
+  <!-- ════ SCENE 3: Map ════ -->
+  <div id="scene3" class="scene">
+    <div id="map-wrap">
+      <img id="map-img"  src="png/map.png"  alt="Map" />
+      <img id="star-img" src="png/star.png" alt="Star" />
+    </div>
+  </div>
+
+  <!-- ════ SCENE 4: Treasure Chest ════ -->
+  <div id="scene4" class="scene">
+    <img id="chest-img" src="png/treasure chest close.png" alt="Treasure Chest" />
+  </div>
+
+<script>
+// ─────────────────────────────────────────
+//  Utilities
+// ─────────────────────────────────────────
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─────────────────────────────────────────
+//  "HA!" male voice sound effect
+// ─────────────────────────────────────────
+// Pre-load voices
+speechSynthesis.onvoiceschanged = () => {};
+
+function sayHA() {
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance('HA!');
+  utter.pitch  = 0.2;   // low = deeper / more male
+  utter.rate   = 0.8;
+  utter.volume = 1;
+  const voices = speechSynthesis.getVoices();
+  const male = voices.find(v => /male|david|james|mark|daniel|alex|google uk english male/i.test(v.name));
+  if (male) utter.voice = male;
+  speechSynthesis.speak(utter);
+}
+
+// ─────────────────────────────────────────
+//  SCENE 1 – Ship Drag to Island
+// ─────────────────────────────────────────
+const ship   = document.getElementById('ship');
+const island = document.getElementById('island');
+let dragging = false;
+let dragOffX = 0, dragOffY = 0;
+
+function dragStart(cx, cy) {
+  dragging = true;
+  const r = ship.getBoundingClientRect();
+  dragOffX = cx - r.left;
+  dragOffY = cy - r.top;
+  // Lock to pixel coordinates so it follows the pointer freely
+  ship.style.transform = 'none';
+  ship.style.left      = r.left + 'px';
+  ship.style.top       = r.top  + 'px';
+  ship.style.cursor    = 'grabbing';
+}
+
+function dragMove(cx, cy) {
+  if (!dragging) return;
+  ship.style.left = (cx - dragOffX) + 'px';
+  ship.style.top  = (cy - dragOffY) + 'px';
+}
+
+function dragEnd() {
+  if (!dragging) return;
+  dragging = false;
+  ship.style.cursor = 'grab';
+
+  const sr  = ship.getBoundingClientRect();
+  const ir  = island.getBoundingClientRect();
+  const hit = !(sr.right < ir.left || sr.left > ir.right ||
+                sr.bottom < ir.top  || sr.top  > ir.bottom);
+
+  if (hit) {
+    ship.style.opacity   = '0';
+    island.style.opacity = '0';
+    setTimeout(() => showScene('scene2'), 400);
+  }
+}
+
+// Mouse
+ship.addEventListener('mousedown', e => { dragStart(e.clientX, e.clientY); e.preventDefault(); });
+document.addEventListener('mousemove', e => dragMove(e.clientX, e.clientY));
+document.addEventListener('mouseup',   () => dragEnd());
+
+// Touch
+ship.addEventListener('touchstart', e => {
+  dragStart(e.touches[0].clientX, e.touches[0].clientY);
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  dragMove(e.touches[0].clientX, e.touches[0].clientY);
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', () => dragEnd());
+
+// ─────────────────────────────────────────
+//  SCENE 2 – 3-Round Battle
+// ─────────────────────────────────────────
+const pirateImg = document.getElementById('pirate-img');
+const attackBtn = document.getElementById('attack-btn');
+let round = 0;
+let busy  = false;
+
+attackBtn.addEventListener('click', () => {
+  if (busy) return;
+  busy = true;
+  round++;
+  attackBtn.style.display = 'none';
+
+  // ── User attacks: pirate hurt (random variant) ──
+  pirateImg.src = Math.random() < 0.5
+    ? 'png/pirate sick.png'
+    : 'png/pirate sick2.png';
+
+  setTimeout(() => {
+    pirateImg.src = 'png/pirate.png';   // back to original
+
+    if (round < 3) {
+      // ── Pirate counterattacks ──
+      setTimeout(() => {
+        pirateImg.src = 'png/pirate fight.png';
+        sayHA();
+
+        setTimeout(() => {
+          pirateImg.src = 'png/pirate.png';
+          busy = false;
+          attackBtn.style.display = '';   // show again for next round
+        }, 2000);
+
+      }, 500);  // brief pause before pirate retaliates
+
+    } else {
+      // ── Round 3: no counterattack – pirate falls ──
+      setTimeout(() => {
+        pirateImg.src = 'png/pirate down.png';
+        setTimeout(() => enterScene3(), 2000);
+      }, 500);
+    }
+
+  }, 2000);   // pirate stays hurt for 2 s
+});
+
+// ─────────────────────────────────────────
+//  SCENE 3 – Map pop-out
+// ─────────────────────────────────────────
+function enterScene3() {
+  showScene('scene3');
+  // Re-trigger the pop animation
+  const mw = document.getElementById('map-wrap');
+  mw.style.animation = 'none';
+  void mw.offsetHeight;          // force reflow
+  mw.style.animation = '';
+}
+
+document.getElementById('star-img').addEventListener('click', () => {
+  showScene('scene4');
+  enterScene4();
+});
+
+// ─────────────────────────────────────────
+//  SCENE 4 – Treasure Chest drop-in
+// ─────────────────────────────────────────
+function enterScene4() {
+  const chest = document.getElementById('chest-img');
+  chest.src = 'png/treasure chest close.png';
+
+  // Reset position to above screen
+  chest.style.transition = 'none';
+  chest.style.top        = '-60%';
+
+  // Two rAF calls ensure the browser registers the start position
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    chest.style.transition = 'top 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    // Center horizontally already via left:50%/transform.
+    // "60% from the bottom" → center at 40% from top.
+    // Chest height = 45vmin → top edge = 40% - 22.5vmin.
+    chest.style.top = 'calc(40% - 22.5vmin)';
+  }));
+}
+
+document.getElementById('chest-img').addEventListener('click', () => {
+  const chest = document.getElementById('chest-img');
+  if (!chest.src.includes('open')) {
+    chest.src = 'png/treasure chest open.png';
+  }
+});
+</script>
+</body>
+</html>
