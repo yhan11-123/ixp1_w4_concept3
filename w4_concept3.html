@@ -6,10 +6,8 @@
   <title>Pirate Adventure</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body { width: 100vw; height: 100vh; overflow: hidden; }
 
-    /* ── shared scene base ── */
     .scene {
       position: fixed;
       inset: 0;
@@ -21,34 +19,34 @@
        SCENE 1 – Ship & Island
     ════════════════════════════ */
     #scene1 {
-      background: linear-gradient(to bottom, #87ceeb 0%, #1a78a0 55%, #0d4e70 100%);
+      background: url('png/background.png') center / cover no-repeat;
     }
 
-    /* Ship: center at 25% from left, vertically centered, 20% screen */
+    /* Ship: center at 30% from left edge, vertically centered, 20% of screen */
     #ship {
       position: absolute;
       width: 20vw;
       height: 20vh;
       object-fit: contain;
-      left: calc(25% - 10vw);
+      left: calc(30% - 10vw);   /* center at 30% from left */
       top: 50%;
       transform: translateY(-50%);
       cursor: grab;
       user-select: none;
       z-index: 10;
-      transition: opacity 0.3s;
+      transition: opacity 0.4s;
     }
 
-    /* Island: center at 25% from right (75% from left), vertically centered, 20% screen */
+    /* Island: center at 30% from right edge (70% from left), vertically centered */
     #island {
       position: absolute;
       width: 20vw;
       height: 20vh;
       object-fit: contain;
-      left: calc(75% - 10vw);
+      left: calc(70% - 10vw);   /* center at 70% from left = 30% from right */
       top: 50%;
       transform: translateY(-50%);
-      transition: opacity 0.3s;
+      transition: opacity 0.4s;
     }
 
     /* ════════════════════════════
@@ -162,15 +160,14 @@
       position: absolute;
       width: 50px;
       height: 50px;
-      top: 42%;
-      left: 57%;
       cursor: pointer;
-      animation: sparkle 0.75s ease-in-out infinite;
+      /* position set randomly by JS within central 40% of map */
       transform-origin: center;
+      animation: sparkle 0.75s ease-in-out infinite;
       filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 3px orange);
     }
 
-    /* Star: scale between 100% and 150% */
+    /* Star scales between 100% and 150% */
     @keyframes sparkle {
       0%, 100% { transform: scale(1);   }
       50%       { transform: scale(1.5); }
@@ -183,17 +180,16 @@
       background: radial-gradient(ellipse at center bottom, #3d1f00 0%, #150800 100%);
     }
 
-    /* 45% of screen; horizontally centered; animates from top */
+    /* 50% of screen; horizontally centered; animates from top */
     #chest-img {
       position: absolute;
-      width: 45vmin;
-      height: 45vmin;
+      width: 50vmin;
+      height: 50vmin;
       object-fit: contain;
       left: 50%;
       transform: translateX(-50%);
       cursor: pointer;
-      /* starts off-screen above */
-      top: -60%;
+      top: -60%;   /* starts above screen */
     }
   </style>
 </head>
@@ -224,8 +220,12 @@
 
   <!-- ════ SCENE 4: Treasure Chest ════ -->
   <div id="scene4" class="scene">
-    <img id="chest-img" src="png/treasure chest close.png" alt="Treasure Chest" />
+    <img id="chest-img" src="png/treasure_chest _close.png" alt="Treasure Chest" />
   </div>
+
+  <!-- Audio assets -->
+  <audio id="pirate-voice" src="png/pirate voice.m4a" preload="auto"></audio>
+  <audio id="treasure-sfx" src="png/treasure.mp3"     preload="auto"></audio>
 
 <script>
 // ─────────────────────────────────────────
@@ -234,24 +234,6 @@
 function showScene(id) {
   document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-}
-
-// ─────────────────────────────────────────
-//  "HA!" male voice sound effect
-// ─────────────────────────────────────────
-// Pre-load voices
-speechSynthesis.onvoiceschanged = () => {};
-
-function sayHA() {
-  speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance('HA!');
-  utter.pitch  = 0.2;   // low = deeper / more male
-  utter.rate   = 0.8;
-  utter.volume = 1;
-  const voices = speechSynthesis.getVoices();
-  const male = voices.find(v => /male|david|james|mark|daniel|alex|google uk english male/i.test(v.name));
-  if (male) utter.voice = male;
-  speechSynthesis.speak(utter);
 }
 
 // ─────────────────────────────────────────
@@ -267,7 +249,7 @@ function dragStart(cx, cy) {
   const r = ship.getBoundingClientRect();
   dragOffX = cx - r.left;
   dragOffY = cy - r.top;
-  // Lock to pixel coordinates so it follows the pointer freely
+  // Lock to pixel coordinates so the ship follows the pointer freely
   ship.style.transform = 'none';
   ship.style.left      = r.left + 'px';
   ship.style.top       = r.top  + 'px';
@@ -287,7 +269,7 @@ function dragEnd() {
 
   const sr  = ship.getBoundingClientRect();
   const ir  = island.getBoundingClientRect();
-  const hit = !(sr.right < ir.left || sr.left > ir.right ||
+  const hit = !(sr.right  < ir.left || sr.left > ir.right ||
                 sr.bottom < ir.top  || sr.top  > ir.bottom);
 
   if (hit) {
@@ -297,12 +279,12 @@ function dragEnd() {
   }
 }
 
-// Mouse
+// Mouse events
 ship.addEventListener('mousedown', e => { dragStart(e.clientX, e.clientY); e.preventDefault(); });
 document.addEventListener('mousemove', e => dragMove(e.clientX, e.clientY));
 document.addEventListener('mouseup',   () => dragEnd());
 
-// Touch
+// Touch events
 ship.addEventListener('touchstart', e => {
   dragStart(e.touches[0].clientX, e.touches[0].clientY);
   e.preventDefault();
@@ -315,9 +297,17 @@ document.addEventListener('touchend', () => dragEnd());
 
 // ─────────────────────────────────────────
 //  SCENE 2 – 3-Round Battle
+//
+//  Round flow:
+//    User clicks circle → pirate hurt (2 s)
+//    → pirate returns to normal
+//    → [rounds 1 & 2 only] 0.5 s pause → pirate attacks (2 s) + voice
+//    → pirate returns to normal → show circle again
+//    Round 3: no counterattack → pirate falls → Scene 3
 // ─────────────────────────────────────────
-const pirateImg = document.getElementById('pirate-img');
-const attackBtn = document.getElementById('attack-btn');
+const pirateImg   = document.getElementById('pirate-img');
+const attackBtn   = document.getElementById('attack-btn');
+const pirateVoice = document.getElementById('pirate-voice');
 let round = 0;
 let busy  = false;
 
@@ -327,32 +317,34 @@ attackBtn.addEventListener('click', () => {
   round++;
   attackBtn.style.display = 'none';
 
-  // ── User attacks: pirate hurt (random variant) ──
+  // ── User attacks: pirate shows hurt image (random variant) ──
   pirateImg.src = Math.random() < 0.5
-    ? 'png/pirate sick.png'
-    : 'png/pirate sick2.png';
+    ? 'png/pirate_sick.png'
+    : 'png/pirate_sick2.png';
 
   setTimeout(() => {
-    pirateImg.src = 'png/pirate.png';   // back to original
+    pirateImg.src = 'png/pirate.png';   // pirate returns to original
 
     if (round < 3) {
-      // ── Pirate counterattacks ──
+      // ── Pirate counterattacks (0.5 s after returning) ──
       setTimeout(() => {
-        pirateImg.src = 'png/pirate fight.png';
-        sayHA();
+        pirateImg.src = 'png/pirate_fight.png';
+        // Play pirate voice at exact moment attack image appears
+        pirateVoice.currentTime = 0;
+        pirateVoice.play().catch(() => {});
 
         setTimeout(() => {
-          pirateImg.src = 'png/pirate.png';
+          pirateImg.src = 'png/pirate.png';   // pirate returns to original
           busy = false;
-          attackBtn.style.display = '';   // show again for next round
+          attackBtn.style.display = '';        // show attack circle for next round
         }, 2000);
 
-      }, 500);  // brief pause before pirate retaliates
+      }, 500);
 
     } else {
       // ── Round 3: no counterattack – pirate falls ──
       setTimeout(() => {
-        pirateImg.src = 'png/pirate down.png';
+        pirateImg.src = 'png/pirate_down.png';
         setTimeout(() => enterScene3(), 2000);
       }, 500);
     }
@@ -365,11 +357,20 @@ attackBtn.addEventListener('click', () => {
 // ─────────────────────────────────────────
 function enterScene3() {
   showScene('scene3');
+
   // Re-trigger the pop animation
   const mw = document.getElementById('map-wrap');
   mw.style.animation = 'none';
-  void mw.offsetHeight;          // force reflow
+  void mw.offsetHeight;   // force reflow
   mw.style.animation = '';
+
+  // Place the star at a random position within the central 40% of the map
+  // Central 40% means: x from 30%–70%, y from 30%–70%
+  const star = document.getElementById('star-img');
+  const x = 30 + Math.random() * 40;   // 30% to 70%
+  const y = 30 + Math.random() * 40;   // 30% to 70%
+  star.style.left = x + '%';
+  star.style.top  = y + '%';
 }
 
 document.getElementById('star-img').addEventListener('click', () => {
@@ -380,28 +381,31 @@ document.getElementById('star-img').addEventListener('click', () => {
 // ─────────────────────────────────────────
 //  SCENE 4 – Treasure Chest drop-in
 // ─────────────────────────────────────────
+const treasureSfx = document.getElementById('treasure-sfx');
+
 function enterScene4() {
   const chest = document.getElementById('chest-img');
-  chest.src = 'png/treasure chest close.png';
+  chest.src = 'png/treasure_chest _close.png';
 
-  // Reset position to above screen
+  // Reset to above screen with no transition
   chest.style.transition = 'none';
   chest.style.top        = '-60%';
 
-  // Two rAF calls ensure the browser registers the start position
+  // Two rAFs ensure the browser registers the start position before animating
   requestAnimationFrame(() => requestAnimationFrame(() => {
     chest.style.transition = 'top 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    // Center horizontally already via left:50%/transform.
-    // "60% from the bottom" → center at 40% from top.
-    // Chest height = 45vmin → top edge = 40% - 22.5vmin.
-    chest.style.top = 'calc(40% - 22.5vmin)';
+    // Center of chest at 40% from top = 60% from bottom
+    // Chest height = 50vmin → top edge at 40% - 25vmin
+    chest.style.top = 'calc(40% - 25vmin)';
   }));
 }
 
 document.getElementById('chest-img').addEventListener('click', () => {
   const chest = document.getElementById('chest-img');
   if (!chest.src.includes('open')) {
-    chest.src = 'png/treasure chest open.png';
+    chest.src = 'png/treasure_chest_open.png';
+    treasureSfx.currentTime = 0;
+    treasureSfx.play().catch(() => {});
   }
 });
 </script>
