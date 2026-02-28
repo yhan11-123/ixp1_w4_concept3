@@ -35,6 +35,16 @@
       user-select: none;
       z-index: 10;
       transition: opacity 0.4s;
+      animation: shipHint 2.4s ease-in-out infinite;
+    }
+
+    /* Affordance: ship nudges toward the island then returns */
+    @keyframes shipHint {
+      0%   { transform: translateY(-50%) translateX(0);     }
+      35%  { transform: translateY(-50%) translateX(22vw);  }
+      55%  { transform: translateY(-50%) translateX(22vw);  }
+      90%  { transform: translateY(-50%) translateX(0);     }
+      100% { transform: translateY(-50%) translateX(0);     }
     }
 
     /* Island: center at 30% from right edge (70% from left), vertically centered */
@@ -249,7 +259,8 @@ function dragStart(cx, cy) {
   const r = ship.getBoundingClientRect();
   dragOffX = cx - r.left;
   dragOffY = cy - r.top;
-  // Lock to pixel coordinates so the ship follows the pointer freely
+  // Stop the hint animation and lock to pixel coordinates
+  ship.style.animation = 'none';
   ship.style.transform = 'none';
   ship.style.left      = r.left + 'px';
   ship.style.top       = r.top  + 'px';
