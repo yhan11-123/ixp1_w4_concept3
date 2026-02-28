@@ -28,7 +28,7 @@
       width: 20vw;
       height: 20vh;
       object-fit: contain;
-      left: calc(30% - 10vw);   /* center at 30% from left */
+      left: calc(30% - 10vw);
       top: 50%;
       transform: translateY(-50%);
       cursor: grab;
@@ -43,7 +43,7 @@
       width: 20vw;
       height: 20vh;
       object-fit: contain;
-      left: calc(70% - 10vw);   /* center at 70% from left = 30% from right */
+      left: calc(70% - 10vw);
       top: 50%;
       transform: translateY(-50%);
       transition: opacity 0.4s;
@@ -161,7 +161,6 @@
       width: 50px;
       height: 50px;
       cursor: pointer;
-      /* position set randomly by JS within central 40% of map */
       transform-origin: center;
       animation: sparkle 0.75s ease-in-out infinite;
       filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 3px orange);
@@ -224,8 +223,9 @@
   </div>
 
   <!-- Audio assets -->
-  <audio id="pirate-voice" src="png/pirate voice.m4a" preload="auto"></audio>
-  <audio id="treasure-sfx" src="png/treasure.mp3"     preload="auto"></audio>
+  <audio id="pirate-sick-sfx" src="png/pirate sick.m4a"  preload="auto"></audio>
+  <audio id="pirate-voice"    src="png/pirate voice.m4a" preload="auto"></audio>
+  <audio id="treasure-sfx"    src="png/treasure.mp3"     preload="auto"></audio>
 
 <script>
 // ─────────────────────────────────────────
@@ -299,15 +299,16 @@ document.addEventListener('touchend', () => dragEnd());
 //  SCENE 2 – 3-Round Battle
 //
 //  Round flow:
-//    User clicks circle → pirate hurt (2 s)
+//    User clicks circle → pirate hurt + sick sound (2 s)
 //    → pirate returns to normal
-//    → [rounds 1 & 2 only] 0.5 s pause → pirate attacks (2 s) + voice
+//    → [rounds 1 & 2 only] 0.5 s pause → pirate attacks (2 s) + voice sound
 //    → pirate returns to normal → show circle again
 //    Round 3: no counterattack → pirate falls → Scene 3
 // ─────────────────────────────────────────
-const pirateImg   = document.getElementById('pirate-img');
-const attackBtn   = document.getElementById('attack-btn');
-const pirateVoice = document.getElementById('pirate-voice');
+const pirateImg     = document.getElementById('pirate-img');
+const attackBtn     = document.getElementById('attack-btn');
+const pirateSickSfx = document.getElementById('pirate-sick-sfx');
+const pirateVoice   = document.getElementById('pirate-voice');
 let round = 0;
 let busy  = false;
 
@@ -317,10 +318,12 @@ attackBtn.addEventListener('click', () => {
   round++;
   attackBtn.style.display = 'none';
 
-  // ── User attacks: pirate shows hurt image (random variant) ──
+  // ── User attacks: pirate shows hurt image (random variant) + sick sound ──
   pirateImg.src = Math.random() < 0.5
     ? 'png/pirate_sick.png'
     : 'png/pirate_sick2.png';
+  pirateSickSfx.currentTime = 0;
+  pirateSickSfx.play().catch(() => {});
 
   setTimeout(() => {
     pirateImg.src = 'png/pirate.png';   // pirate returns to original
@@ -394,7 +397,7 @@ function enterScene4() {
   // Two rAFs ensure the browser registers the start position before animating
   requestAnimationFrame(() => requestAnimationFrame(() => {
     chest.style.transition = 'top 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    // Center of chest at 40% from top = 60% from bottom
+    // Chest center at 40% from top = 60% from bottom
     // Chest height = 50vmin → top edge at 40% - 25vmin
     chest.style.top = 'calc(40% - 25vmin)';
   }));
