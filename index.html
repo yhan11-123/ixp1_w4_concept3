@@ -179,11 +179,11 @@
       background: radial-gradient(ellipse at center bottom, #3d1f00 0%, #150800 100%);
     }
 
-    /* 50% of screen; horizontally centered; animates from top */
+    /* 50% of screen width × 50% of screen height; horizontally centered; animates from top */
     #chest-img {
       position: absolute;
-      width: 50vmin;
-      height: 50vmin;
+      width: 50vw;
+      height: 50vh;
       object-fit: contain;
       left: 50%;
       transform: translateX(-50%);
@@ -398,8 +398,8 @@ function enterScene4() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     chest.style.transition = 'top 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)';
     // Chest center at 40% from top = 60% from bottom
-    // Chest height = 50vmin → top edge at 40% - 25vmin
-    chest.style.top = 'calc(40% - 25vmin)';
+    // Chest height = 50vh → top edge at 40% - 25vh
+    chest.style.top = 'calc(40% - 25vh)';
   }));
 }
 
